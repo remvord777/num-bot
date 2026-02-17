@@ -22,7 +22,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib import colors
 
-# ---------- ENV ----------
+
+# ================== ENV ==================
+
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -38,36 +40,45 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_KEY)
 
-# ---------- НАСТРОЙКИ ----------
+
+# ================== НАСТРОЙКИ ==================
+
 ADMIN_ID = 335400441
 PAYMENT_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
-SUPPORT_LINK = "https://t.me/remvord"  # <-- без @
+SUPPORT_LINK = "https://t.me/remvord"
 
 user_data = {}
 pending_orders = {}
 
-# ---------- ВСПОМОГАТЕЛЬНОЕ ----------
+
+# ================== SAFE SEND ==================
+
 async def safe_send(message: Message, text: str, keyboard=None):
-    chunk_size = 4000
-    for i in range(0, len(text), chunk_size):
+    chunk = 4000
+    for i in range(0, len(text), chunk):
         await message.answer(
-            text[i:i+chunk_size],
+            text[i:i + chunk],
             reply_markup=keyboard if i == 0 else None
         )
 
-# ---------- НУМЕРОЛОГИЯ ----------
+
+# ================== НУМЕРОЛОГИЯ ==================
+
 def reduce_number(n: int) -> int:
     while n > 9 and n not in (11, 22):
         n = sum(int(d) for d in str(n))
     return n
 
+
 def life_path(day: int, month: int, year: int) -> int:
     total = sum(int(d) for d in f"{day:02d}{month:02d}{year}")
     return reduce_number(total)
 
+
 def personal_year(day: int, month: int, current_year: int) -> int:
     total = sum(int(d) for d in f"{day:02d}{month:02d}{current_year}")
     return reduce_number(total)
+
 
 def pythagoras_matrix(day: int, month: int, year: int):
     digits = [int(d) for d in f"{day:02d}{month:02d}{year}"]
@@ -76,31 +87,32 @@ def pythagoras_matrix(day: int, month: int, year: int):
     s3 = s1 - (int(str(day)[0]) * 2)
     s4 = sum(int(d) for d in str(s3))
 
-    extra_digits = []
+    extra = []
     for n in [s1, s2, s3, s4]:
-        extra_digits.extend([int(d) for d in str(n)])
+        extra.extend([int(d) for d in str(n)])
 
-    all_digits = digits + extra_digits
+    all_digits = digits + extra
     return {i: all_digits.count(i) for i in range(1, 10)}
 
-# ---------- PDF ----------
-def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis, short_version):
-    filename = f"matrix_{user_id}.pdf"
 
-    # Универсальный шрифт для Linux
+# ================== PDF ==================
+
+def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis):
+    filename = f"/tmp/matrix_{user_id}.pdf"
+
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
 
     doc = SimpleDocTemplate(filename, pagesize=A4)
 
-    normal_style = ParagraphStyle(
+    normal = ParagraphStyle(
         name='Normal',
         fontName='DejaVuSans',
         fontSize=11,
-        leading=15,
+        leading=15
     )
 
-    header_style = ParagraphStyle(
+    header = ParagraphStyle(
         name='Header',
         fontName='DejaVuSans',
         fontSize=18,
@@ -109,7 +121,7 @@ def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis, short_
         spaceAfter=14
     )
 
-    section_style = ParagraphStyle(
+    section = ParagraphStyle(
         name='Section',
         fontName='DejaVuSans',
         fontSize=14,
@@ -121,26 +133,24 @@ def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis, short_
 
     elements = []
 
-    elements.append(Paragraph("Персональный нумерологический отчёт", header_style))
-    elements.append(Paragraph(f"Дата рождения: {birth_date}", normal_style))
-    elements.append(Paragraph(f"Имя: {full_name}", normal_style))
+    elements.append(Paragraph("Персональный нумерологический отчёт", header))
+    elements.append(Paragraph(f"Дата рождения: {birth_date}", normal))
+    elements.append(Paragraph(f"Имя: {full_name}", normal))
     elements.append(Spacer(1, 0.4 * inch))
 
-    elements.append(Paragraph("Расширенный профиль", section_style))
-    elements.append(Paragraph(short_version.replace("\n", "<br/>"), normal_style))
+    elements.append(Paragraph("Матрица Пифагора", section))
+    elements.append(Paragraph(matrix_visual.replace("\n", "<br/>"), normal))
     elements.append(Spacer(1, 0.4 * inch))
 
-    elements.append(Paragraph("Матрица Пифагора", section_style))
-    elements.append(Paragraph(matrix_visual.replace("\n", "<br/>"), normal_style))
-    elements.append(Spacer(1, 0.4 * inch))
-
-    elements.append(Paragraph("Полный аналитический разбор", section_style))
-    elements.append(Paragraph(analysis.replace("\n", "<br/>"), normal_style))
+    elements.append(Paragraph("Полный аналитический разбор", section))
+    elements.append(Paragraph(analysis.replace("\n", "<br/>"), normal))
 
     doc.build(elements)
     return filename
 
-# ---------- UI ----------
+
+# ================== UI ==================
+
 def get_pay_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -155,11 +165,12 @@ def get_pay_keyboard():
         ]
     )
 
+
 def get_main_menu():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="🔁 Сделать новый расчёт",
+                text="🔁 Новый расчёт",
                 callback_data="new_calc"
             )],
             [InlineKeyboardButton(
@@ -169,12 +180,181 @@ def get_main_menu():
         ]
     )
 
+
 def valid_input(text: str):
     return "," in text and re.match(r"\d{2}\.\d{2}\.\d{4}", text.strip())
 
-# ---------- RUN ----------
+
+# ================== HANDLERS ==================
+
+@dp.message(CommandStart())
+async def start(message: Message):
+    await message.answer(
+        "Введите дату и имя через запятую:\n\n"
+        "Пример: 21.07.1987, Иван Петров",
+        reply_markup=get_main_menu()
+    )
+
+
+@dp.message()
+async def calculate(message: Message):
+    text = message.text.strip()
+
+    if not valid_input(text):
+        await message.answer("Введите: ДД.ММ.ГГГГ, Имя Фамилия")
+        return
+
+    birth_date, full_name = map(str.strip, text.split(",", 1))
+    day, month, year = map(int, birth_date.split("."))
+
+    lp = life_path(day, month, year)
+    py = personal_year(day, month, datetime.now().year)
+
+    user_data[message.from_user.id] = {
+        "birth_date": birth_date,
+        "full_name": full_name
+    }
+
+    prompt = f"""
+Дата рождения: {birth_date}
+Число пути: {lp}
+Персональный год: {py}
+
+Сделай краткий нумерологический разбор.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "Ты профессиональный нумеролог."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.8,
+        max_tokens=800
+    )
+
+    await safe_send(message, response.choices[0].message.content, get_pay_keyboard())
+
+
+@dp.callback_query()
+async def callbacks(callback: CallbackQuery):
+
+    if callback.data == "new_calc":
+        await callback.answer()
+        await callback.message.answer(
+            "Введите дату и имя через запятую:\n\n"
+            "Пример: 21.07.1987, Иван Петров"
+        )
+
+    elif callback.data == "buy_full":
+        await callback.answer()
+
+        await callback.message.answer(
+            "Оплатите 399 ₽ по ссылке ниже.\n\n"
+            "После оплаты нажмите кнопку."
+        )
+
+        await callback.message.answer(PAYMENT_LINK)
+
+        await callback.message.answer(
+            "Подтвердите оплату:",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="✅ Я оплатил",
+                        callback_data="confirm_payment"
+                    )]
+                ]
+            )
+        )
+
+    elif callback.data == "confirm_payment":
+        await callback.answer()
+
+        data = user_data.get(callback.from_user.id)
+        if not data:
+            return
+
+        pending_orders[callback.from_user.id] = data
+
+        await callback.message.answer("⏳ Отправлено на проверку.")
+
+        await bot.send_message(
+            ADMIN_ID,
+            f"💳 Запрос подтверждения\n\n"
+            f"{data['birth_date']}\n"
+            f"{data['full_name']}",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="✅ Подтвердить",
+                            callback_data=f"approve_{callback.from_user.id}"
+                        )
+                    ]
+                ]
+            )
+        )
+
+    elif callback.data.startswith("approve_") and callback.from_user.id == ADMIN_ID:
+
+        user_id = int(callback.data.split("_")[1])
+        data = pending_orders.get(user_id)
+        if not data:
+            return
+
+        birth_date = data["birth_date"]
+        full_name = data["full_name"]
+
+        day, month, year = map(int, birth_date.split("."))
+        matrix = pythagoras_matrix(day, month, year)
+
+        matrix_visual = (
+            f"{matrix[1]}  {matrix[4]}  {matrix[7]}\n"
+            f"{matrix[2]}  {matrix[5]}  {matrix[8]}\n"
+            f"{matrix[3]}  {matrix[6]}  {matrix[9]}"
+        )
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Ты профессиональный нумеролог."},
+                {"role": "user", "content": f"Сделай полный разбор для {birth_date}."}
+            ],
+            temperature=0.8,
+            max_tokens=1400
+        )
+
+        analysis = response.choices[0].message.content
+
+        filename = generate_pdf(
+            user_id,
+            birth_date,
+            full_name,
+            matrix_visual,
+            analysis
+        )
+
+        await bot.send_document(user_id, FSInputFile(filename))
+
+        if os.path.exists(filename):
+            os.remove(filename)
+
+        await bot.send_message(
+            user_id,
+            "✅ Ваш отчёт готов.",
+            reply_markup=get_main_menu()
+        )
+
+        await callback.message.edit_text("✅ Оплата подтверждена.")
+        del pending_orders[user_id]
+
+
+# ================== RUN ==================
+
 async def main():
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
