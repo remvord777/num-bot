@@ -47,6 +47,9 @@ ADMIN_ID = 335400441
 PAYMENT_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
 SUPPORT_LINK = "https://t.me/remvord"
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+QR_PATH = os.path.join(BASE_DIR, "tbank_qr.png")
+
 user_data = {}
 pending_orders = {}
 
@@ -101,20 +104,25 @@ def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis):
     filename = f"/tmp/matrix_{user_id}.pdf"
 
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
+
+    if os.path.exists(font_path):
+        pdfmetrics.registerFont(TTFont("DejaVuSans", font_path))
+        font_name = "DejaVuSans"
+    else:
+        font_name = "Helvetica"
 
     doc = SimpleDocTemplate(filename, pagesize=A4)
 
     normal = ParagraphStyle(
         name='Normal',
-        fontName='DejaVuSans',
+        fontName=font_name,
         fontSize=11,
         leading=15
     )
 
     header = ParagraphStyle(
         name='Header',
-        fontName='DejaVuSans',
+        fontName=font_name,
         fontSize=18,
         leading=22,
         textColor=colors.HexColor("#1F618D"),
@@ -123,7 +131,7 @@ def generate_pdf(user_id, birth_date, full_name, matrix_visual, analysis):
 
     section = ParagraphStyle(
         name='Section',
-        fontName='DejaVuSans',
+        fontName=font_name,
         fontSize=14,
         leading=18,
         textColor=colors.HexColor("#2E4053"),
@@ -250,11 +258,14 @@ async def callbacks(callback: CallbackQuery):
         await callback.answer()
 
         await callback.message.answer(
-            "Оплатите 399 ₽ по ссылке ниже.\n\n"
+            "Оплатите 399 ₽ по ссылке или через QR ниже.\n\n"
             "После оплаты нажмите кнопку."
         )
 
         await callback.message.answer(PAYMENT_LINK)
+
+        if os.path.exists(QR_PATH):
+            await callback.message.answer_photo(FSInputFile(QR_PATH))
 
         await callback.message.answer(
             "Подтвердите оплату:",
@@ -270,13 +281,11 @@ async def callbacks(callback: CallbackQuery):
 
     elif callback.data == "confirm_payment":
         await callback.answer()
-
         data = user_data.get(callback.from_user.id)
         if not data:
             return
 
         pending_orders[callback.from_user.id] = data
-
         await callback.message.answer("⏳ Отправлено на проверку.")
 
         await bot.send_message(
@@ -286,12 +295,10 @@ async def callbacks(callback: CallbackQuery):
             f"{data['full_name']}",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [
-                        InlineKeyboardButton(
-                            text="✅ Подтвердить",
-                            callback_data=f"approve_{callback.from_user.id}"
-                        )
-                    ]
+                    [InlineKeyboardButton(
+                        text="✅ Подтвердить",
+                        callback_data=f"approve_{callback.from_user.id}"
+                    )]
                 ]
             )
         )
