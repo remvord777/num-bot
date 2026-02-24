@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+from datetime import datetime
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.types import (
@@ -45,11 +46,34 @@ def reduce_number(n: int) -> int:
     return n
 
 
-def valid_date(text: str):
-    return bool(re.match(r"^\d{2}\.\d{2}\.\d{4}$", text.strip()))
+# 🔥 УМНАЯ ОБРАБОТКА ДАТЫ
+
+def parse_birth_date(text: str):
+    text = text.strip()
+
+    # убираем всё кроме цифр
+    digits = re.sub(r"\D", "", text)
+
+    if len(digits) != 8:
+        return None
+
+    day = int(digits[:2])
+    month = int(digits[2:4])
+    year = int(digits[4:])
+
+    try:
+        date = datetime(year, month, day)
+
+        if year < 1900 or year > datetime.now().year:
+            return None
+
+        return date.strftime("%d.%m.%Y")
+
+    except ValueError:
+        return None
 
 
-# 🔥 ФИКСИРУЕМ СИСТЕМУ 1 / 5 / 9
+# 🔢 Формула 1 / 5 / 9
 
 def mission_number(day, month, year):
     total = sum(int(d) for d in f"{day:02d}{month:02d}{year}")
@@ -69,7 +93,7 @@ def get_menu():
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="💛 Сказать спасибо (99 ₽)",
+                text="💛 Поддержать проект",
                 callback_data="thanks"
             )],
             [InlineKeyboardButton(
@@ -89,9 +113,12 @@ def get_menu():
 @dp.message(CommandStart())
 async def start(message: Message):
     await message.answer(
-        "Введите дату рождения в формате:\n"
-        "ДД.ММ.ГГГГ\n"
-        "Пример: 20.02.1967"
+        "🔮 Введите дату рождения\n\n"
+        "Можно так:\n"
+        "20.02.1967\n"
+        "20-02-1967\n"
+        "20021967\n\n"
+        "Я сам приведу к нужному формату."
     )
 
 
@@ -100,20 +127,24 @@ async def start(message: Message):
 @dp.message()
 async def calculate(message: Message):
 
-    birth_date = message.text.strip()
+    parsed_date = parse_birth_date(message.text)
 
-    if not valid_date(birth_date):
-        await message.answer("Введите дату в формате ДД.ММ.ГГГГ")
+    if not parsed_date:
+        await message.answer(
+            "❌ Неверная дата.\n\n"
+            "Попробуйте снова.\n"
+            "Пример: 20.02.1967"
+        )
         return
 
-    day, month, year = map(int, birth_date.split("."))
+    day, month, year = map(int, parsed_date.split("."))
 
     mission = mission_number(day, month, year)
     realization = realization_number(day, month)
     consciousness = consciousness_number(day)
 
     prompt = f"""
-Дата рождения: {birth_date}
+Дата рождения: {parsed_date}
 
 Число миссии: {mission}
 Число реализации: {realization}
@@ -133,8 +164,8 @@ async def calculate(message: Message):
 🔹 Финансовый потенциал
 🔹 Итог
 
-Пиши экспертно, эмоционально, но без воды.
-Объём 1800–2500 символов.
+Объём 2000–3000 символов.
+Пиши экспертно, живо, без воды.
 """
 
     response = client.chat.completions.create(
@@ -144,7 +175,7 @@ async def calculate(message: Message):
             {"role": "user", "content": prompt}
         ],
         temperature=0.9,
-        max_tokens=2000
+        max_tokens=2500
     )
 
     await message.answer(
@@ -162,17 +193,16 @@ async def callbacks(callback: CallbackQuery):
     if callback.data == "new_calc":
         await callback.answer()
         await callback.message.answer(
-            "Введите дату рождения в формате ДД.ММ.ГГГГ"
+            "Введите дату рождения (любой формат):\n"
+            "20.02.1967 или 20021967"
         )
 
     elif callback.data == "thanks":
         await callback.answer()
-
         await callback.message.answer(
             "💛 Спасибо за поддержку!\n\n"
-            "Если хотите поддержать проект — 99 ₽ по ссылке ниже:"
+            "Если хотите поддержать проект — перейдите по ссылке:"
         )
-
         await callback.message.answer(DONATE_LINK)
 
 
