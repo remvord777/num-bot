@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
@@ -12,6 +13,15 @@ from aiogram.types import (
 )
 from aiogram.filters import CommandStart
 from openai import OpenAI
+
+
+# ================== ЛОГИРОВАНИЕ ==================
+
+logging.basicConfig(
+    filename="users.log",
+    level=logging.INFO,
+    format="%(asctime)s | %(message)s"
+)
 
 
 # ================== ENV ==================
@@ -46,12 +56,8 @@ def reduce_number(n: int) -> int:
     return n
 
 
-# 🔥 УМНАЯ ОБРАБОТКА ДАТЫ
-
 def parse_birth_date(text: str):
     text = text.strip()
-
-    # убираем всё кроме цифр
     digits = re.sub(r"\D", "", text)
 
     if len(digits) != 8:
@@ -73,15 +79,15 @@ def parse_birth_date(text: str):
         return None
 
 
-# 🔢 Формула 1 / 5 / 9
-
 def mission_number(day, month, year):
     total = sum(int(d) for d in f"{day:02d}{month:02d}{year}")
     return reduce_number(total)
 
+
 def realization_number(day, month):
     total = sum(int(d) for d in f"{day:02d}{month:02d}")
     return reduce_number(total)
+
 
 def consciousness_number(day):
     return reduce_number(day)
@@ -112,6 +118,13 @@ def get_menu():
 
 @dp.message(CommandStart())
 async def start(message: Message):
+
+    logging.info(
+        f"START | ID: {message.from_user.id} | "
+        f"Username: @{message.from_user.username} | "
+        f"Name: {message.from_user.full_name}"
+    )
+
     await message.answer(
         "🔮 Введите дату рождения\n\n"
         "Можно так:\n"
@@ -142,6 +155,14 @@ async def calculate(message: Message):
     mission = mission_number(day, month, year)
     realization = realization_number(day, month)
     consciousness = consciousness_number(day)
+
+    logging.info(
+        f"CALC | ID: {message.from_user.id} | "
+        f"Date: {parsed_date} | "
+        f"Mission: {mission} | "
+        f"Realization: {realization} | "
+        f"Consciousness: {consciousness}"
+    )
 
     prompt = f"""
 Дата рождения: {parsed_date}
@@ -198,6 +219,11 @@ async def callbacks(callback: CallbackQuery):
         )
 
     elif callback.data == "thanks":
+
+        logging.info(
+            f"DONATE_CLICK | ID: {callback.from_user.id}"
+        )
+
         await callback.answer()
         await callback.message.answer(
             "💛 Спасибо за поддержку!\n\n"
