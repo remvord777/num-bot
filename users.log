@@ -1,0 +1,10 @@
+2026-03-01 15:38:15,657 | Start polling
+2026-03-01 15:38:15,891 | Run polling for bot @life_code_ai_bot id=8567138203 - 'Матрица судьбы'
+2026-03-01 15:38:30,771 | START | ID: 335400441 | Username: @remvord | Name: rem
+2026-03-01 15:38:31,132 | Update id=300817738 is handled. Duration 361 ms by bot id=8567138203
+2026-03-01 15:40:39,620 | START | ID: 7197179581 | Username: @None | Name: Denis Vorobiev
+2026-03-01 15:40:40,178 | Update id=300817739 is handled. Duration 558 ms by bot id=8567138203
+2026-03-01 15:41:05,450 | Polling stopped
+2026-03-01 15:41:05,451 | Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-01 15:41:05,451 | Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8567138203)
+2026-03-01 15:41:05,715 | Polling stopped for bot @life_code_ai_bot id=8567138203 - 'Матрица судьбы'

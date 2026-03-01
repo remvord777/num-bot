@@ -15,6 +15,15 @@ from aiogram.filters import CommandStart
 from openai import OpenAI
 
 
+# ================== НАСТРОЙКИ ==================
+
+ADMIN_ID = 335400441  # <-- твой Telegram ID
+DONATE_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
+SUPPORT_LINK = "https://t.me/remvord"
+
+KNOWN_USERS_FILE = "known_users.txt"
+
+
 # ================== ЛОГИРОВАНИЕ ==================
 
 logging.basicConfig(
@@ -42,13 +51,7 @@ dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_KEY)
 
 
-# ================== НАСТРОЙКИ ==================
-
-DONATE_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
-SUPPORT_LINK = "https://t.me/remvord"
-
-
-# ================== УТИЛИТЫ ==================
+# ================== ВСПОМОГАТЕЛЬНЫЕ ==================
 
 def reduce_number(n: int) -> int:
     while n > 9 and n not in (11, 22):
@@ -93,6 +96,21 @@ def consciousness_number(day):
     return reduce_number(day)
 
 
+def is_new_user(user_id: int):
+    if not os.path.exists(KNOWN_USERS_FILE):
+        return True
+
+    with open(KNOWN_USERS_FILE, "r") as f:
+        known = f.read().splitlines()
+
+    return str(user_id) not in known
+
+
+def save_user(user_id: int):
+    with open(KNOWN_USERS_FILE, "a") as f:
+        f.write(f"{user_id}\n")
+
+
 # ================== UI ==================
 
 def get_menu():
@@ -119,11 +137,25 @@ def get_menu():
 @dp.message(CommandStart())
 async def start(message: Message):
 
+    user_id = message.from_user.id
+
     logging.info(
-        f"START | ID: {message.from_user.id} | "
+        f"START | ID: {user_id} | "
         f"Username: @{message.from_user.username} | "
         f"Name: {message.from_user.full_name}"
     )
+
+    # 🔔 Уведомление админу при первом входе
+    if is_new_user(user_id):
+        save_user(user_id)
+
+        await bot.send_message(
+            ADMIN_ID,
+            f"🔔 Новый пользователь\n\n"
+            f"ID: {user_id}\n"
+            f"Username: @{message.from_user.username}\n"
+            f"Name: {message.from_user.full_name}"
+        )
 
     await message.answer(
         "🔮 Введите дату рождения\n\n"
@@ -158,10 +190,7 @@ async def calculate(message: Message):
 
     logging.info(
         f"CALC | ID: {message.from_user.id} | "
-        f"Date: {parsed_date} | "
-        f"Mission: {mission} | "
-        f"Realization: {realization} | "
-        f"Consciousness: {consciousness}"
+        f"Date: {parsed_date}"
     )
 
     prompt = f"""
@@ -172,21 +201,8 @@ async def calculate(message: Message):
 Число сознания: {consciousness}
 
 Сделай глубокий, структурированный разбор.
-Без символов ###.
-Используй красивые визуальные блоки и эмодзи.
-
-Структура:
-
-🔹 Число миссии — предназначение
-🔹 Число реализации — проявление в жизни
-🔹 Число сознания — тип мышления
-🔹 Сильные стороны
-🔹 Возможные тени
-🔹 Финансовый потенциал
-🔹 Итог
-
+Используй эмодзи.
 Объём 2000–3000 символов.
-Пиши экспертно, живо, без воды.
 """
 
     response = client.chat.completions.create(
