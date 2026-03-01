@@ -11,7 +11,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     CallbackQuery
 )
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from openai import OpenAI
 
 
@@ -165,9 +165,39 @@ async def start(message: Message):
     )
 
 
+# ================== ADMIN STATS ==================
+
+@dp.message(Command("stats"))
+async def stats(message: Message):
+
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    total_users = 0
+    total_calcs = 0
+    total_donates = 0
+
+    if os.path.exists(KNOWN_USERS_FILE):
+        with open(KNOWN_USERS_FILE, "r") as f:
+            total_users = len(f.read().splitlines())
+
+    if os.path.exists("users.log"):
+        with open("users.log", "r") as f:
+            logs = f.read()
+            total_calcs = logs.count("CALC |")
+            total_donates = logs.count("DONATE_CLICK |")
+
+    await message.answer(
+        "📊 Статистика проекта:\n\n"
+        f"👥 Пользователей: {total_users}\n"
+        f"🔢 Расчётов: {total_calcs}\n"
+        f"💛 Клики доната: {total_donates}"
+    )
+
+
 # ================== РАСЧЁТ ==================
 
-@dp.message()
+@dp.message(~Command())
 async def calculate(message: Message):
 
     parsed_date = parse_birth_date(message.text)
@@ -237,42 +267,20 @@ async def callbacks(callback: CallbackQuery):
             f"DONATE_CLICK | ID: {callback.from_user.id}"
         )
 
+        await bot.send_message(
+            ADMIN_ID,
+            f"💛 Донат-клик\n\n"
+            f"ID: {callback.from_user.id}\n"
+            f"Username: @{callback.from_user.username}\n"
+            f"Name: {callback.from_user.full_name}"
+        )
+
         await callback.answer()
         await callback.message.answer(
             "💛 Спасибо за поддержку!\n\n"
             "Если хотите поддержать проект — перейдите по ссылке:"
         )
         await callback.message.answer(DONATE_LINK)
-
-
-# ================== ADMIN STATS ==================
-
-@dp.message(lambda message: message.text == "/stats")
-async def stats(message: Message):
-
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    total_users = 0
-    total_calcs = 0
-    total_donates = 0
-
-    if os.path.exists(KNOWN_USERS_FILE):
-        with open(KNOWN_USERS_FILE, "r") as f:
-            total_users = len(f.read().splitlines())
-
-    if os.path.exists("users.log"):
-        with open("users.log", "r") as f:
-            logs = f.read()
-            total_calcs = logs.count("CALC |")
-            total_donates = logs.count("DONATE_CLICK |")
-
-    await message.answer(
-        "📊 Статистика проекта:\n\n"
-        f"👥 Пользователей: {total_users}\n"
-        f"🔢 Расчётов: {total_calcs}\n"
-        f"💛 Клики доната: {total_donates}"
-    )
 
 
 # ================== RUN ==================
