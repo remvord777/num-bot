@@ -17,10 +17,9 @@ from openai import OpenAI
 
 # ================== НАСТРОЙКИ ==================
 
-ADMIN_ID = 335400441  # <-- твой Telegram ID
+ADMIN_ID = 335400441
 DONATE_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
 SUPPORT_LINK = "https://t.me/remvord"
-
 KNOWN_USERS_FILE = "known_users.txt"
 
 
@@ -145,7 +144,6 @@ async def start(message: Message):
         f"Name: {message.from_user.full_name}"
     )
 
-    # 🔔 Уведомление админу при первом входе
     if is_new_user(user_id):
         save_user(user_id)
 
@@ -189,8 +187,7 @@ async def calculate(message: Message):
     consciousness = consciousness_number(day)
 
     logging.info(
-        f"CALC | ID: {message.from_user.id} | "
-        f"Date: {parsed_date}"
+        f"CALC | ID: {message.from_user.id} | Date: {parsed_date}"
     )
 
     prompt = f"""
@@ -246,6 +243,36 @@ async def callbacks(callback: CallbackQuery):
             "Если хотите поддержать проект — перейдите по ссылке:"
         )
         await callback.message.answer(DONATE_LINK)
+
+
+# ================== ADMIN STATS ==================
+
+@dp.message(lambda message: message.text == "/stats")
+async def stats(message: Message):
+
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    total_users = 0
+    total_calcs = 0
+    total_donates = 0
+
+    if os.path.exists(KNOWN_USERS_FILE):
+        with open(KNOWN_USERS_FILE, "r") as f:
+            total_users = len(f.read().splitlines())
+
+    if os.path.exists("users.log"):
+        with open("users.log", "r") as f:
+            logs = f.read()
+            total_calcs = logs.count("CALC |")
+            total_donates = logs.count("DONATE_CLICK |")
+
+    await message.answer(
+        "📊 Статистика проекта:\n\n"
+        f"👥 Пользователей: {total_users}\n"
+        f"🔢 Расчётов: {total_calcs}\n"
+        f"💛 Клики доната: {total_donates}"
+    )
 
 
 # ================== RUN ==================
