@@ -197,8 +197,12 @@ async def stats(message: Message):
 
 # ================== РАСЧЁТ ==================
 
-@dp.message(~Command())
+@dp.message()
 async def calculate(message: Message):
+
+    # Игнорируем команды
+    if message.text.startswith("/"):
+        return
 
     parsed_date = parse_birth_date(message.text)
 
