@@ -28,9 +28,9 @@ KNOWN_USERS_FILE = "known_users.txt"
 logging.basicConfig(
     filename="users.log",
     level=logging.INFO,
-    format="%(asctime)s | %(message)s"
+    format="%(asctime)s | %(message)s",
+    encoding="utf-8"
 )
-
 
 # ================== ENV ==================
 
@@ -182,7 +182,7 @@ async def stats(message: Message):
             total_users = len(f.read().splitlines())
 
     if os.path.exists("users.log"):
-        with open("users.log", "r") as f:
+        with open("users.log", "r", encoding="utf-8", errors="ignore") as f:
             logs = f.read()
             total_calcs = logs.count("CALC |")
             total_donates = logs.count("DONATE_CLICK |")
