@@ -214,10 +214,61 @@ async def stats(message: Message):
     )
 
 
+# ================== ROBOT COMMANDS ==================
+
+@dp.message(Command("robot"))
+async def robot_forward(message: Message):
+    print("ROBOT forward")
+    send_robot("forward")
+    await message.answer("🤖 Робот: вперёд")
+
+@dp.message(Command("robot_back"))
+async def robot_back(message: Message):
+    print("ROBOT back")
+    send_robot("back")
+    await message.answer("🤖 Робот: назад")
+
+@dp.message(Command("robot_left"))
+async def robot_left(message: Message):
+    print("ROBOT left")
+    send_robot("left")
+    await message.answer("🤖 Робот: влево")
+
+@dp.message(Command("robot_right"))
+async def robot_right(message: Message):
+    print("ROBOT right")
+    send_robot("right")
+    await message.answer("🤖 Робот: вправо")
+
+@dp.message(Command("robot_stop"))
+async def robot_stop(message: Message):
+    print("ROBOT stop")
+    send_robot("stop")
+    await message.answer("🤖 Робот: стоп")
+
+@dp.message(Command("robot_status"))
+async def robot_status(message: Message):
+    print("ROBOT status")
+    s = get_robot_status()
+
+    if not s:
+        await message.answer("❌ Робот недоступен")
+        return
+
+    await message.answer(
+        f"🤖 Статус\n"
+        f"🔋 Батарея: {s.get('battery', '?')}%\n"
+        f"{'🟢 Онлайн' if s.get('online') else '🔴 Оффлайн'}"
+    )
+
+
 # ================== РАСЧЁТ ==================
 
 @dp.message()
 async def calculate(message: Message):
+
+    if not message.text:
+        return
 
     if message.text.startswith("/"):
         return
@@ -303,48 +354,6 @@ async def callbacks(callback: CallbackQuery):
             "Если хотите поддержать проект — перейдите по ссылке:"
         )
         await callback.message.answer(DONATE_LINK)
-
-
-# ================== ROBOT COMMANDS ==================
-
-@dp.message(Command("robot"))
-async def robot_forward(message: Message):
-    send_robot("forward")
-    await message.answer("🤖 Робот: вперёд")
-
-@dp.message(Command("robot_back"))
-async def robot_back(message: Message):
-    send_robot("back")
-    await message.answer("🤖 Робот: назад")
-
-@dp.message(Command("robot_left"))
-async def robot_left(message: Message):
-    send_robot("left")
-    await message.answer("🤖 Робот: влево")
-
-@dp.message(Command("robot_right"))
-async def robot_right(message: Message):
-    send_robot("right")
-    await message.answer("🤖 Робот: вправо")
-
-@dp.message(Command("robot_stop"))
-async def robot_stop(message: Message):
-    send_robot("stop")
-    await message.answer("🤖 Робот: стоп")
-
-@dp.message(Command("robot_status"))
-async def robot_status(message: Message):
-    s = get_robot_status()
-
-    if not s:
-        await message.answer("❌ Робот недоступен")
-        return
-
-    await message.answer(
-        f"🤖 Статус\n"
-        f"🔋 Батарея: {s['battery']}%\n"
-        f"{'🟢 Онлайн' if s['online'] else '🔴 Оффлайн'}"
-    )
 
 
 # ================== RUN ==================
