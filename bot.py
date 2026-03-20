@@ -216,7 +216,7 @@ async def stats(message: Message):
 
 # ================== РАСЧЁТ ==================
 
-@dp.message()
+@dp.message(lambda message: not message.text.startswith("/"))
 async def calculate(message: Message):
 
     if message.text.startswith("/"):
