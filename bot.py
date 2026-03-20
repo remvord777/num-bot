@@ -13,7 +13,6 @@ from aiogram.types import (
 )
 from aiogram.filters import CommandStart, Command
 from openai import OpenAI
-import requests
 
 
 # ================== НАСТРОЙКИ ==================
@@ -22,8 +21,6 @@ ADMIN_ID = 335400441
 DONATE_LINK = "https://www.tbank.ru/cf/7GlP75YQif6"
 SUPPORT_LINK = "https://t.me/remvord"
 KNOWN_USERS_FILE = "known_users.txt"
-
-ROBOT_URL = "http://localhost:5001"
 
 
 # ================== ЛОГИРОВАНИЕ ==================
@@ -51,22 +48,6 @@ if not OPENAI_KEY:
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_KEY)
-
-
-# ================== ROBOT ==================
-
-def send_robot(cmd):
-    try:
-        requests.post(f"{ROBOT_URL}/api/set", json={"cmd": cmd})
-    except Exception as e:
-        logging.error(f"Robot error: {e}")
-
-
-def get_robot_status():
-    try:
-        return requests.get(f"{ROBOT_URL}/api/status").json()
-    except:
-        return None
 
 
 # ================== ВСПОМОГАТЕЛЬНЫЕ ==================
@@ -214,62 +195,12 @@ async def stats(message: Message):
     )
 
 
-# ================== ROBOT COMMANDS ==================
-
-@dp.message(Command("robot"))
-async def robot_forward(message: Message):
-    print("ROBOT forward")
-    send_robot("forward")
-    await message.answer("🤖 Робот: вперёд")
-
-@dp.message(Command("robot_back"))
-async def robot_back(message: Message):
-    print("ROBOT back")
-    send_robot("back")
-    await message.answer("🤖 Робот: назад")
-
-@dp.message(Command("robot_left"))
-async def robot_left(message: Message):
-    print("ROBOT left")
-    send_robot("left")
-    await message.answer("🤖 Робот: влево")
-
-@dp.message(Command("robot_right"))
-async def robot_right(message: Message):
-    print("ROBOT right")
-    send_robot("right")
-    await message.answer("🤖 Робот: вправо")
-
-@dp.message(Command("robot_stop"))
-async def robot_stop(message: Message):
-    print("ROBOT stop")
-    send_robot("stop")
-    await message.answer("🤖 Робот: стоп")
-
-@dp.message(Command("robot_status"))
-async def robot_status(message: Message):
-    print("ROBOT status")
-    s = get_robot_status()
-
-    if not s:
-        await message.answer("❌ Робот недоступен")
-        return
-
-    await message.answer(
-        f"🤖 Статус\n"
-        f"🔋 Батарея: {s.get('battery', '?')}%\n"
-        f"{'🟢 Онлайн' if s.get('online') else '🔴 Оффлайн'}"
-    )
-
-
 # ================== РАСЧЁТ ==================
 
 @dp.message()
 async def calculate(message: Message):
 
-    if not message.text:
-        return
-
+    # Игнорируем команды
     if message.text.startswith("/"):
         return
 
